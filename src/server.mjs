@@ -21,7 +21,7 @@ export function isAllowedAddress(raw, allowLan = false) {
 
 function send(res, code, body, type = 'application/json; charset=utf-8') {
   res.writeHead(code, { 'content-type': type, 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' });
-  res.end(typeof body === 'string' ? body : JSON.stringify(body));
+  res.end(typeof body === 'string' || Buffer.isBuffer(body) ? body : JSON.stringify(body));
 }
 
 function readBody(req) {

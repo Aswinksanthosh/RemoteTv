@@ -22,7 +22,11 @@ test('API needs the key; page files are plain', async () => {
     const ok = await fetch(base + '/api/state', { headers: { 'x-key': key } });
     assert.equal(ok.status, 200);
     assert.ok(['day', 'evening', 'night'].includes((await ok.json()).mode));
-    assert.equal((await fetch(base + '/')).status, 200);
+    const page = await fetch(base + '/');
+    assert.equal(page.status, 200);
+    assert.match(page.headers.get('content-type'), /text\/html/);
+    assert.match(await page.text(), /^<!doctype html>/i);   // real HTML, not a JSON Buffer
+    assert.match(await (await fetch(base + '/app.js')).text(), /^'use strict'/);
     const bad = await fetch(base + '/api/mode', { method: 'POST', headers: { 'x-key': key }, body: JSON.stringify({ mode: 'x' }) });
     assert.equal(bad.status, 400);
   } finally { server.close(); }
