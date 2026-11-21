@@ -55,6 +55,31 @@ $('update').addEventListener('click', async () => {
     if (r.updated) setTimeout(() => location.reload(), 6000);
   } catch (e) { $('upd').textContent = e.message; }
 });
+async function copyText(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); return true; }
+  } catch { /* fall through */ }
+  const ta = document.createElement('textarea');   // plain http pages: use the old way
+  ta.value = text;
+  ta.setAttribute('readonly', '');
+  ta.className = 'offscreen';
+  document.body.appendChild(ta);
+  ta.select();
+  ta.setSelectionRange(0, text.length);
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch { ok = false; }
+  document.body.removeChild(ta);
+  return ok;
+}
+
+$('ex-copy').addEventListener('click', async () => {
+  const text = $('ex-out').textContent;
+  if (!text) return;
+  const ok = await copyText(text);
+  $('ex-copy').textContent = ok ? 'Copied!' : 'Could not copy: press and hold the text instead';
+  setTimeout(() => { $('ex-copy').textContent = 'Copy result'; }, 2500);
+});
+
 async function experiment(type, k, v) {
   $('ex-out').textContent = 'Sending...';
   try {
