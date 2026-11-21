@@ -21,10 +21,10 @@ function hhmm(iso, tz) {
 
 function render(s) {
   state = s;
-  $('mode').textContent = s.mode ? s.mode + ' (' + s.level + ')' : 'Not chosen yet';
+  $('mode').textContent = s.mode ? (s.mode === 'day' ? 'day (Reset)' : s.mode + ' (' + s.level + ')') : 'Not chosen yet';
   const bits = [s.autoOn ? 'Automatic schedule is ON' : 'Manual only: nothing changes by itself'];
   if (s.autoOn && s.override) bits.push('Manual choice until the schedule changes');
-  bits.push(s.applied ? 'On TV: ' + s.applied + ' at ' + s.appliedLevel : 'Not applied yet');
+  bits.push(s.applied ? 'On TV: ' + s.applied + (s.applied === 'day' ? '' : ' at ' + s.appliedLevel) : 'Not applied yet');
   $('detail').textContent = bits.join(' · ');
   $('next').textContent = s.next ? 'Next: ' + s.next.mode + ' at ' + hhmm(s.next.at, s.timezone) : '';
   $('error').textContent = s.lastError || '';
@@ -33,7 +33,7 @@ function render(s) {
   $('auto').textContent = s.autoOn ? 'Turn automatic schedule off' : 'Turn automatic schedule on';
   $('back').hidden = !s.autoOn;
   document.querySelectorAll('button[data-mode]').forEach((b) => b.classList.toggle('on', b.dataset.mode === s.override));
-  for (const k of ['day', 'evening', 'night']) {
+  for (const k of ['evening', 'night']) {
     const el = $('lv-' + k);
     if (document.activeElement !== el) el.value = s.levels[k];
   }
@@ -45,7 +45,7 @@ async function run(fn) {
 
 document.querySelectorAll('button[data-mode]').forEach((b) => b.addEventListener('click', () => run(() => api('/api/mode', { mode: b.dataset.mode }))));
 $('auto').addEventListener('click', () => run(() => api('/api/auto', { auto: !(state && state.autoOn) })));
-$('save').addEventListener('click', () => run(() => api('/api/levels', { day: Number($('lv-day').value), evening: Number($('lv-evening').value), night: Number($('lv-night').value) })));
+$('save').addEventListener('click', () => run(() => api('/api/levels', { evening: Number($('lv-evening').value), night: Number($('lv-night').value) })));
 $('apply').addEventListener('click', () => run(() => api('/api/apply', {})));
 $('update').addEventListener('click', async () => {
   $('upd').textContent = 'Updating...';

@@ -18,6 +18,7 @@ export const DEFAULTS = {
   sliderMax: 100,        // Backlight slider goes 0..sliderMax, one step per key press
   timingV: 3,            // bump to drop old saved timing values
   menuDelayMs: 1200,
+  resetConfirm: true,    // press OK a second time after Reset in case a confirm box appears
   exitBacks: 3,
   tickSeconds: 60,
 };

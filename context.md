@@ -55,6 +55,10 @@ The broadcast `com.amazon.tv.pqsettings.action.SWITCH_PICTURE_MODE` is refused f
 
 No native auto-brightness on this TV and the silent mode switch is impossible, so the menu flash cannot be avoided. Owner chose: phone page as the remote (Day / Evening / Night buttons, level boxes), automatic schedule OFF by default (`autoSchedule` in config, toggle on the page), "Mode switch test" card removed, the key sequence sent as ONE on-device shell script (about 6 s instead of 15; timing keys `keyChunk` 25, `menuDelayMs` 1200, `navDelayMs` 250; old saved timings are dropped via `timingV`). Not verified on the real TV after this change: that 25 keys per call and the shorter waits do not drop presses (if the final value is wrong, raise `keyDelayMs` or lower `keyChunk` in config.json).
 
+## Update (2026-11-21, owner): faster, and Day = Reset
+
+Key sequence merged into 3 shell commands (each `input keyevent` costs the TV about 0.5 s to start; 15 commands took about 15 s). Owner's rule: **the Day profile is only the Reset button** in the Picture menu (Settings, Down x2, OK = Picture; Down, OK = Reset; Back x3), no slider. Reset restores that mode's picture settings to factory (owner accepts). Evening and Night still use the slider (Left x100 to the bottom, then Right to the level). `resetConfirm` (default true) presses OK once more in case a confirm box appears; if a box shows with a different default button, tell Claude. Not yet timed on the real TV after this change.
+
 ## Idea: run on the TV itself
 
 Termux (sideloaded) on the Fire TV with `adb connect localhost:5555`, Termux:Boot to start, Tailscale Android TV app for the phone page. Keep the code portable (ADB path and host configurable) so it runs on the laptop first and can move later. Risks: Fire OS may kill background apps; the menu flashes about 8 seconds on screen, so apply changes at wake-up or quiet times; when the TV is off, catch up to the correct level on wake.

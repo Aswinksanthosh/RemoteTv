@@ -41,7 +41,7 @@ export class Controller {
     this.lastTick = t;
     const want = this.desired();
     if (!want) { if (force) this.s.lastError = 'Choose Day, Evening or Night first'; return; }
-    const level = this.cfg.levels[want];
+    const level = want === 'day' ? 'reset' : this.cfg.levels[want];   // Day = press Reset
     if (!force) {
       if (this.s.applied === want && this.s.appliedLevel === level) return;
       if (this.now().getTime() < this.retryAfter) return;
@@ -55,7 +55,8 @@ export class Controller {
         if (force) this.s.lastError = 'TV is asleep';
         return;  // catches up when the TV wakes
       }
-      await this.tv.setBacklight(level);
+      if (want === 'day') await this.tv.resetBacklight();
+      else await this.tv.setBacklight(level);
       Object.assign(this.s, { applied: want, appliedLevel: level, lastApplyAt: this.now().toISOString(), lastError: null });
       this.retryAfter = 0;
       this._save();
@@ -97,7 +98,7 @@ export class Controller {
     const want = this.desired();
     const on = !!this.cfg.autoSchedule;
     return {
-      mode: want, scheduleMode: a.mode, autoOn: on, level: want ? this.cfg.levels[want] : null,
+      mode: want, scheduleMode: a.mode, autoOn: on, level: want ? (want === 'day' ? 'reset' : this.cfg.levels[want]) : null,
       applied: this.s.applied, appliedLevel: this.s.appliedLevel,
       override: this.s.override ? this.s.override.mode : null,
       next: on && a.next ? { mode: a.next.mode, at: a.next.at.toISOString() } : null,

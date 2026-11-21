@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { sunTimesForYmd } from '../src/sun.mjs';
 import { modeAt } from '../src/schedule.mjs';
 import { DEFAULTS, sanitizeLevels } from '../src/config.mjs';
-import { backlightSteps, backlightScript, KEY, Tv } from '../src/adb.mjs';
+import { backlightSteps, backlightScript, resetScript, KEY, Tv } from '../src/adb.mjs';
 import { Controller } from '../src/controller.mjs';
 import { Auth } from '../src/auth.mjs';
 import { isAllowedAddress } from '../src/server.mjs';
@@ -71,6 +71,12 @@ test('backlight is set by ONE on-device script with only 3 commands', () => {
   assert.ok(!sc.includes('\n'));
 });
 
+test('Day is just the Reset button, no slider', () => {
+  const sc = resetScript(cfg());
+  assert.equal(sc, 'input keyevent 176; sleep 1.2; input keyevent 20 20 23; sleep 1.2; input keyevent 20 23; sleep 0.6; input keyevent 23; sleep 0.6; input keyevent 4 4 4');
+  assert.ok(!/ 21/.test(sc) && !/ 22/.test(sc));
+});
+
 test('controller applies the schedule once and not again', async () => {
   const { ctl, log } = makeController();
   await ctl.tick();
@@ -122,6 +128,7 @@ test('manual only (the default): nothing happens until a button is tapped', asyn
   assert.ok(log.some((l) => l.includes('input keyevent 176')));
   await ctl.setMode('day');
   assert.equal(ctl.snapshot().applied, 'day');       // stays until another tap, even hours later
+  assert.ok(log.some((l) => l.includes('input keyevent 20 23')));   // Day pressed Reset
 });
 
 test('controller reports an unreachable TV', async () => {

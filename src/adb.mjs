@@ -55,6 +55,30 @@ export function backlightSteps(cfg, target) {
   ];
 }
 
+// Day profile: just press Reset in the Picture menu (Settings, Down x2, OK = Picture; Down, OK = Reset).
+// Pressing OK a second time answers a confirm box if one appears (a second Reset is harmless if not).
+export function resetSteps(cfg) {
+  const steps = [
+    { keys: [KEY.SETTINGS], wait: cfg.menuDelayMs },
+    { keys: [KEY.DOWN, KEY.DOWN, KEY.OK], wait: cfg.menuDelayMs },
+    { keys: [KEY.DOWN, KEY.OK], wait: 600 },
+  ];
+  if (cfg.resetConfirm) steps.push({ keys: [KEY.OK], wait: 600 });
+  steps.push({ keys: Array(cfg.exitBacks).fill(KEY.BACK), wait: 0 });
+  return steps;
+}
+
+function toScript(steps) {
+  const parts = [];
+  for (const s of steps) {
+    if (s.keys.length) parts.push('input keyevent ' + s.keys.join(' '));
+    if (s.wait > 0) parts.push('sleep ' + s.wait / 1000);
+  }
+  return parts.join('; ');
+}
+
+export function resetScript(cfg) { return toScript(resetSteps(cfg)); }
+
 export function backlightScript(cfg, target) {
   const parts = [];
   for (const s of backlightSteps(cfg, target)) {
@@ -91,6 +115,11 @@ export class Tv {
     return true;
   }
   // The whole sequence runs as ONE shell script on the TV, so the menu is only on screen for a few seconds.
+  async resetBacklight() {
+    const r = await this.adb(['shell', resetScript(this.cfg)], { timeout: 90000 });
+    if (r.code !== 0) throw new Error('ADB key presses failed: ' + (r.stderr || r.stdout || r.code).toString().trim());
+  }
+
   async setBacklight(target) {
     const r = await this.adb(['shell', backlightScript(this.cfg, target)], { timeout: 90000 });
     if (r.code !== 0) throw new Error('ADB key presses failed: ' + (r.stderr || r.stdout || r.code).toString().trim());
