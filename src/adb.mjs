@@ -98,8 +98,14 @@ export class Tv {
       if (type === 'ez' && !/^(true|false)$/.test(v)) throw new Error('ez needs true or false');
       args.push('--' + type, key, v);
     }
+    await this.adb(['logcat', '-c']);
     const r = await this.adb(args);
-    return (r.stdout || r.stderr || '').trim();
+    await this.pause(1500);
+    const log = await this.adb(['logcat', '-d', '-t', '400']);
+    const lines = (log.stdout || '').split(/\r?\n/)
+      .filter((l) => /PictureMode|pqsettings|SwitchPicture|PQ|picture/i.test(l))
+      .slice(-25).map((l) => l.slice(0, 300));
+    return [(r.stdout || r.stderr || '').trim(), lines.length ? '--- TV log ---' : '--- TV log: nothing ---', ...lines].join('\n');
   }
 
   async setBacklight(target) {
