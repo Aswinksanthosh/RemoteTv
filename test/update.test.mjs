@@ -97,7 +97,8 @@ test('old saved timing values are replaced; defaults stay out of the file', asyn
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rtv-'));
   fs.writeFileSync(path.join(dir, 'config.json'), JSON.stringify({ tvHost: '192.0.2.5', keyChunk: 10, keyDelayMs: 150, menuDelayMs: 1500 }));
   const c = loadConfig(dir);
-  assert.equal(c.keyChunk, 25);
+  assert.equal(c.menuDelayMs, 1200);
+  assert.equal(c.keyChunk, undefined);
   assert.equal(c.autoSchedule, false);
   saveConfig(c, dir);
   const saved = JSON.parse(fs.readFileSync(path.join(dir, 'config.json'), 'utf8'));

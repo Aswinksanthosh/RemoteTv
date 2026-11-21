@@ -34,29 +34,25 @@ export async function findAdb(cfgPath = '', run = runProcess) {
   return null;
 }
 
-// The exact button presses proven on the TV: Settings, Down x2, OK (Picture),
-// Down x2 (Backlight), then Left to the bottom and Right up to the target.
+// Button presses proven on the TV: Settings, Down x2, OK (Picture), Down x2 (Backlight), then Left to the
+// bottom and Right up to the target, then Back out. Only 3 shell commands, because each separate
+// "input keyevent" costs the TV about half a second to start; the slider presses go in one command.
 export function backlightSteps(cfg, target) {
   const t = Math.round(target);
   if (!Number.isInteger(t) || t < 0 || t > cfg.sliderMax) throw new Error('backlight must be 0..' + cfg.sliderMax);
-  const steps = [
+  return [
     { keys: [KEY.SETTINGS], wait: cfg.menuDelayMs },
-    { keys: [KEY.DOWN], wait: cfg.navDelayMs },
-    { keys: [KEY.DOWN], wait: cfg.navDelayMs },
-    { keys: [KEY.OK], wait: cfg.menuDelayMs },
-    { keys: [KEY.DOWN], wait: cfg.navDelayMs },
-    { keys: [KEY.DOWN], wait: cfg.navDelayMs },
+    { keys: [KEY.DOWN, KEY.DOWN, KEY.OK], wait: cfg.menuDelayMs },
+    {
+      keys: [
+        KEY.DOWN, KEY.DOWN,
+        ...Array(cfg.sliderMax).fill(KEY.LEFT),
+        ...Array(t).fill(KEY.RIGHT),
+        ...Array(cfg.exitBacks).fill(KEY.BACK),
+      ],
+      wait: 0,
+    },
   ];
-  const rep = (key, n) => {
-    for (let i = 0; i < n; i += cfg.keyChunk) {
-      steps.push({ keys: Array(Math.min(cfg.keyChunk, n - i)).fill(key), wait: cfg.keyDelayMs });
-    }
-  };
-  rep(KEY.LEFT, cfg.sliderMax);
-  rep(KEY.RIGHT, t);
-  steps.push({ keys: [], wait: 500 });
-  for (let i = 0; i < cfg.exitBacks; i++) steps.push({ keys: [KEY.BACK], wait: 300 });
-  return steps;
 }
 
 export function backlightScript(cfg, target) {

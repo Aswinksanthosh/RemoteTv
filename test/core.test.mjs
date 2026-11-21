@@ -36,7 +36,7 @@ test('levels are validated', () => {
 });
 
 test('backlight key sequence matches the proven one', () => {
-  const steps = backlightSteps({ ...cfg(), sliderMax: 100, keyChunk: 25 }, 40);
+  const steps = backlightSteps({ ...cfg(), sliderMax: 100 }, 40);
   const keys = steps.flatMap((s) => s.keys);
   assert.deepEqual(keys.slice(0, 6), [KEY.SETTINGS, KEY.DOWN, KEY.DOWN, KEY.OK, KEY.DOWN, KEY.DOWN]);
   assert.equal(keys.filter((k) => k === KEY.LEFT).length, 100);
@@ -64,10 +64,10 @@ function makeController({ awake = true, connected = true, nowIso = '2026-11-21T1
   return { ctl, log, setNow: (iso) => { now = new Date(iso); } };
 }
 
-test('backlight is set by ONE on-device script', () => {
+test('backlight is set by ONE on-device script with only 3 commands', () => {
   const sc = backlightScript(cfg(), 40);
-  assert.match(sc, /^input keyevent 176; sleep 1\.2; input keyevent 20; /);
-  assert.equal((sc.match(/input keyevent 21 /g) || []).length, 3 + 1);   // 100 Lefts in chunks of 25 (last has no trailing space)
+  assert.ok(sc.startsWith('input keyevent 176; sleep 1.2; input keyevent 20 20 23; sleep 1.2; input keyevent 20 20 21 21'));
+  assert.equal((sc.match(/input keyevent/g) || []).length, 3);
   assert.ok(!sc.includes('\n'));
 });
 

@@ -16,11 +16,8 @@ export const DEFAULTS = {
   eveningBeforeSunsetMin: 60,
   nightAfterSunsetMin: 120,
   sliderMax: 100,        // Backlight slider goes 0..sliderMax, one step per key press
-  timingV: 2,            // bump to drop old saved timing values
-  keyChunk: 25,
-  keyDelayMs: 50,
+  timingV: 3,            // bump to drop old saved timing values
   menuDelayMs: 1200,
-  navDelayMs: 250,
   exitBacks: 3,
   tickSeconds: 60,
 };
