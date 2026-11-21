@@ -35,7 +35,7 @@ test('update: errors are readable', async () => {
 });
 
 test('laptop asleep for a while: the level is applied again', async () => {
-  const c = { ...DEFAULTS, levels: { ...DEFAULTS.levels }, tvHost: '192.0.2.5', adbPath: 'adb' };
+  const c = { ...DEFAULTS, levels: { ...DEFAULTS.levels }, tvHost: '192.0.2.5', adbPath: 'adb', autoSchedule: true };
   const calls = [];
   const run = async (f, a) => {
     calls.push(a.join(' '));
@@ -91,29 +91,16 @@ test('Windows files: .cmd are plain ASCII with CRLF; installer does the key step
   assert.ok(st.includes('75') && st.includes('remotetv.mjs'));
 });
 
-test('experiment: only the picture-mode broadcast, with strictly checked extras', async () => {
-  const cfg = { ...DEFAULTS, levels: { ...DEFAULTS.levels }, tvHost: '192.0.2.5', adbPath: 'adb' };
-  const calls = [];
-  const run = async (f, a) => {
-    calls.push(a.join(' '));
-    if (a.includes('get-state')) return { code: 0, stdout: 'device', stderr: '' };
-    return { code: 0, stdout: 'Broadcast completed: result=0', stderr: '' };
-  };
-  const tv = new Tv(cfg, run, async () => {});
-  const controller = new Controller({ cfg, tv });
-  const auth = new Auth(null);
-  const key = auth.addKey();
-  const server = createServer({ cfg, controller, auth, sanitizeLevels, tv });
-  await new Promise((r) => server.listen(0, '127.0.0.1', r));
-  const base = `http://127.0.0.1:${server.address().port}`;
-  const post = (b) => fetch(base + '/api/experiment', { method: 'POST', headers: { 'x-key': key }, body: JSON.stringify(b) });
-  try {
-    const ok = await post({ type: 'es', key: 'picture_mode', value: 'movie' });
-    assert.equal(ok.status, 200);
-    assert.ok(calls.some((c) => c.endsWith('--es picture_mode movie') && c.includes('SWITCH_PICTURE_MODE')));
-    for (const bad of [{ type: 'es', key: 'a;reboot', value: 'x' }, { type: 'es', key: 'k', value: 'a b' }, { type: 'ei', key: 'k', value: 'abc' }, { type: 'zz', key: 'k', value: '1' }]) {
-      assert.equal((await post(bad)).status, 400);
-    }
-    assert.ok(!calls.some((c) => c.includes('reboot')));
-  } finally { server.close(); }
+test('old saved timing values are replaced; defaults stay out of the file', async () => {
+  const { loadConfig, saveConfig } = await import('../src/config.mjs');
+  const os = await import('node:os');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rtv-'));
+  fs.writeFileSync(path.join(dir, 'config.json'), JSON.stringify({ tvHost: '192.0.2.5', keyChunk: 10, keyDelayMs: 150, menuDelayMs: 1500 }));
+  const c = loadConfig(dir);
+  assert.equal(c.keyChunk, 25);
+  assert.equal(c.autoSchedule, false);
+  saveConfig(c, dir);
+  const saved = JSON.parse(fs.readFileSync(path.join(dir, 'config.json'), 'utf8'));
+  assert.deepEqual(Object.keys(saved), ['tvHost']);
+  fs.rmSync(dir, { recursive: true });
 });

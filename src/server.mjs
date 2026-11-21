@@ -33,7 +33,7 @@ function readBody(req) {
   });
 }
 
-export function createServer({ cfg, controller, auth, sanitizeLevels, version = '', updater = null, restart = () => {}, tv = null }) {
+export function createServer({ cfg, controller, auth, sanitizeLevels, version = '', updater = null, restart = () => {} }) {
   return http.createServer(async (req, res) => {
     try {
       if (!isAllowedAddress(req.socket.remoteAddress, cfg.allowLan)) return send(res, 403, { error: 'forbidden' });
@@ -49,7 +49,7 @@ export function createServer({ cfg, controller, auth, sanitizeLevels, version = 
       if (!post) return send(res, 404, { error: 'not found' });
       const body = await readBody(req);
       if (url.pathname === '/api/mode') return send(res, 200, await controller.setMode(body.mode));
-      if (url.pathname === '/api/paused') return send(res, 200, await controller.setPaused(body.paused));
+      if (url.pathname === '/api/auto') return send(res, 200, await controller.setAuto(body.auto));
       if (url.pathname === '/api/levels') return send(res, 200, await controller.setLevels(body, sanitizeLevels));
       if (url.pathname === '/api/update') {
         if (!updater) return send(res, 400, { error: 'updates are not available' });
@@ -57,11 +57,6 @@ export function createServer({ cfg, controller, auth, sanitizeLevels, version = 
         send(res, 200, { ...r, version });
         if (r.updated) setTimeout(restart, 500);
         return;
-      }
-      if (url.pathname === '/api/experiment') {
-        if (!tv) return send(res, 400, { error: 'not available' });
-        if (!(await tv.connect())) return send(res, 400, { error: 'TV not reachable' });
-        return send(res, 200, { output: await tv.broadcastPictureMode(body) });
       }
       if (url.pathname === '/api/apply') return send(res, 200, await controller.reapply());
       return send(res, 404, { error: 'not found' });

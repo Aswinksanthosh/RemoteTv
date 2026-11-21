@@ -34,7 +34,7 @@ const auth = new Auth(dir);
 if (!auth.hasKeys()) showLink(cfg.port, auth.addKey());
 const version = await versionInfo(root);
 const server = createServer({
-  cfg, controller, auth, sanitizeLevels, version, tv,
+  cfg, controller, auth, sanitizeLevels, version,
   updater: () => gitUpdate(root),
   restart: () => process.exit(75),   // the launcher (start.ps1) starts it again
 });

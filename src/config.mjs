@@ -11,13 +11,16 @@ export const DEFAULTS = {
   timezone: 'America/Toronto',
   lat: 43.65,
   lon: -79.38,
+  autoSchedule: false,   // manual by default: nothing changes unless you tap a button
   levels: { day: 78, evening: 55, night: 30 },
   eveningBeforeSunsetMin: 60,
   nightAfterSunsetMin: 120,
   sliderMax: 100,        // Backlight slider goes 0..sliderMax, one step per key press
-  keyChunk: 10,
-  keyDelayMs: 150,
-  menuDelayMs: 1500,
+  timingV: 2,            // bump to drop old saved timing values
+  keyChunk: 25,
+  keyDelayMs: 50,
+  menuDelayMs: 1200,
+  navDelayMs: 250,
   exitBacks: 3,
   tickSeconds: 60,
 };
@@ -38,6 +41,9 @@ export function sanitizeLevels(l, base = DEFAULTS.levels) {
 export function loadConfig(dir = dataDir()) {
   let user = {};
   try { user = JSON.parse(fs.readFileSync(path.join(dir, 'config.json'), 'utf8')); } catch { /* first run */ }
+  if (user.timingV !== DEFAULTS.timingV) {   // older saved timings were slower
+    for (const k of ['keyChunk', 'keyDelayMs', 'menuDelayMs', 'navDelayMs']) delete user[k];
+  }
   const cfg = { ...DEFAULTS, ...user };
   cfg.levels = sanitizeLevels(user.levels);
   return cfg;
@@ -45,5 +51,9 @@ export function loadConfig(dir = dataDir()) {
 
 export function saveConfig(cfg, dir = dataDir()) {
   fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(dir, 'config.json'), JSON.stringify(cfg, null, 2));
+  const out = {};
+  for (const [k, v] of Object.entries(cfg)) {
+    if (JSON.stringify(v) !== JSON.stringify(DEFAULTS[k]) || k === 'tvHost') out[k] = v;   // keep the file small
+  }
+  fs.writeFileSync(path.join(dir, 'config.json'), JSON.stringify(out, null, 2));
 }

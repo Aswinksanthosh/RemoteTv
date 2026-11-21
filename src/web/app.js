@@ -21,17 +21,17 @@ function hhmm(iso, tz) {
 
 function render(s) {
   state = s;
-  $('mode').textContent = s.mode + ' (' + s.level + ')';
-  const bits = [];
-  if (s.paused) bits.push('Schedule paused');
-  if (s.override) bits.push('Manual choice until the schedule changes');
+  $('mode').textContent = s.mode ? s.mode + ' (' + s.level + ')' : 'Not chosen yet';
+  const bits = [s.autoOn ? 'Automatic schedule is ON' : 'Manual only: nothing changes by itself'];
+  if (s.autoOn && s.override) bits.push('Manual choice until the schedule changes');
   bits.push(s.applied ? 'On TV: ' + s.applied + ' at ' + s.appliedLevel : 'Not applied yet');
   $('detail').textContent = bits.join(' · ');
   $('next').textContent = s.next ? 'Next: ' + s.next.mode + ' at ' + hhmm(s.next.at, s.timezone) : '';
   $('error').textContent = s.lastError || '';
   $('status').textContent = 'TV ' + (s.tv.reachable === null ? 'not checked' : s.tv.reachable ? (s.tv.awake ? 'connected' : 'asleep') : 'not reachable') + (s.busy ? ' · working...' : '');
   $('version').textContent = s.version ? 'Version ' + s.version : '';
-  $('pause').textContent = s.paused ? 'Resume schedule' : 'Pause schedule';
+  $('auto').textContent = s.autoOn ? 'Turn automatic schedule off' : 'Turn automatic schedule on';
+  $('back').hidden = !s.autoOn;
   document.querySelectorAll('button[data-mode]').forEach((b) => b.classList.toggle('on', b.dataset.mode === s.override));
   for (const k of ['day', 'evening', 'night']) {
     const el = $('lv-' + k);
@@ -44,7 +44,7 @@ async function run(fn) {
 }
 
 document.querySelectorAll('button[data-mode]').forEach((b) => b.addEventListener('click', () => run(() => api('/api/mode', { mode: b.dataset.mode }))));
-$('pause').addEventListener('click', () => run(() => api('/api/paused', { paused: !(state && state.paused) })));
+$('auto').addEventListener('click', () => run(() => api('/api/auto', { auto: !(state && state.autoOn) })));
 $('save').addEventListener('click', () => run(() => api('/api/levels', { day: Number($('lv-day').value), evening: Number($('lv-evening').value), night: Number($('lv-night').value) })));
 $('apply').addEventListener('click', () => run(() => api('/api/apply', {})));
 $('update').addEventListener('click', async () => {
@@ -55,42 +55,5 @@ $('update').addEventListener('click', async () => {
     if (r.updated) setTimeout(() => location.reload(), 6000);
   } catch (e) { $('upd').textContent = e.message; }
 });
-async function copyText(text) {
-  try {
-    if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); return true; }
-  } catch { /* fall through */ }
-  const ta = document.createElement('textarea');   // plain http pages: use the old way
-  ta.value = text;
-  ta.setAttribute('readonly', '');
-  ta.className = 'offscreen';
-  document.body.appendChild(ta);
-  ta.select();
-  ta.setSelectionRange(0, text.length);
-  let ok = false;
-  try { ok = document.execCommand('copy'); } catch { ok = false; }
-  document.body.removeChild(ta);
-  return ok;
-}
-
-$('ex-copy').addEventListener('click', async () => {
-  const text = $('ex-out').textContent;
-  if (!text) return;
-  const ok = await copyText(text);
-  $('ex-copy').textContent = ok ? 'Copied!' : 'Could not copy: press and hold the text instead';
-  setTimeout(() => { $('ex-copy').textContent = 'Copy result'; }, 2500);
-});
-
-async function experiment(type, k, v) {
-  $('ex-out').textContent = 'Sending...';
-  try {
-    const r = await api('/api/experiment', { type, key: k, value: v });
-    $('ex-out').textContent = (type + ' ' + k + ' ' + v).trim() + ' -> ' + (r.output || 'sent');
-  } catch (e) { $('ex-out').textContent = e.message; }
-}
-document.querySelectorAll('button[data-exp]').forEach((b) => b.addEventListener('click', () => {
-  const [t, k, v] = b.dataset.exp.split('|');
-  experiment(t, k, v);
-}));
-$('ex-send').addEventListener('click', () => experiment($('ex-type').value, $('ex-key').value.trim(), $('ex-val').value.trim()));
 run(() => api('/api/state'));
 setInterval(() => run(() => api('/api/state')), 5000);

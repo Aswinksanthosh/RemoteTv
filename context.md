@@ -51,6 +51,10 @@ Look for keys with `bright`, `backlight` or `picture` and see whether the pictur
 
 The broadcast `com.amazon.tv.pqsettings.action.SWITCH_PICTURE_MODE` is refused for ADB: logcat says `Permission Denial ... from uid=2000 requires com.amazon.tv.pqsettings.permission.SWITCH_PICTURE_MODE`. The permission cannot be given to the shell user, so mode switching without the menu is not possible over ADB. The phone page "Mode switch test" card is only for experiments and can be removed. Backlight stays on key presses (menu flashes). Ideas to make it less annoying: apply only at TV wake or when the Home screen is focused (`dumpsys window` mCurrentFocus shows the foreground app), run the whole key sequence in one on-device shell command to cut the time, and look for a native auto-brightness / eco option in the Picture menu.
 
+## Decision (2026-11-21, owner): manual phone remote
+
+No native auto-brightness on this TV and the silent mode switch is impossible, so the menu flash cannot be avoided. Owner chose: phone page as the remote (Day / Evening / Night buttons, level boxes), automatic schedule OFF by default (`autoSchedule` in config, toggle on the page), "Mode switch test" card removed, the key sequence sent as ONE on-device shell script (about 6 s instead of 15; timing keys `keyChunk` 25, `menuDelayMs` 1200, `navDelayMs` 250; old saved timings are dropped via `timingV`). Not verified on the real TV after this change: that 25 keys per call and the shorter waits do not drop presses (if the final value is wrong, raise `keyDelayMs` or lower `keyChunk` in config.json).
+
 ## Idea: run on the TV itself
 
 Termux (sideloaded) on the Fire TV with `adb connect localhost:5555`, Termux:Boot to start, Tailscale Android TV app for the phone page. Keep the code portable (ADB path and host configurable) so it runs on the laptop first and can move later. Risks: Fire OS may kill background apps; the menu flashes about 8 seconds on screen, so apply changes at wake-up or quiet times; when the TV is off, catch up to the correct level on wake.

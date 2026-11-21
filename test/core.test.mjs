@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import { sunTimesForYmd } from '../src/sun.mjs';
 import { modeAt } from '../src/schedule.mjs';
 import { DEFAULTS, sanitizeLevels } from '../src/config.mjs';
-import { backlightSteps, KEY, Tv } from '../src/adb.mjs';
+import { backlightSteps, backlightScript, KEY, Tv } from '../src/adb.mjs';
 import { Controller } from '../src/controller.mjs';
 import { Auth } from '../src/auth.mjs';
 import { isAllowedAddress } from '../src/server.mjs';
 
-const cfg = () => ({ ...DEFAULTS, levels: { ...DEFAULTS.levels }, tvHost: '192.0.2.5' });
+const cfg = () => ({ ...DEFAULTS, levels: { ...DEFAULTS.levels }, tvHost: '192.0.2.5', autoSchedule: true });
 const minutesLocal = (d) => {
   const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(d);
   return Number(p.find((x) => x.type === 'hour').value) * 60 + Number(p.find((x) => x.type === 'minute').value);
@@ -36,7 +36,7 @@ test('levels are validated', () => {
 });
 
 test('backlight key sequence matches the proven one', () => {
-  const steps = backlightSteps({ ...cfg(), sliderMax: 100, keyChunk: 10 }, 40);
+  const steps = backlightSteps({ ...cfg(), sliderMax: 100, keyChunk: 25 }, 40);
   const keys = steps.flatMap((s) => s.keys);
   assert.deepEqual(keys.slice(0, 6), [KEY.SETTINGS, KEY.DOWN, KEY.DOWN, KEY.OK, KEY.DOWN, KEY.DOWN]);
   assert.equal(keys.filter((k) => k === KEY.LEFT).length, 100);
@@ -64,6 +64,13 @@ function makeController({ awake = true, connected = true, nowIso = '2026-11-21T1
   return { ctl, log, setNow: (iso) => { now = new Date(iso); } };
 }
 
+test('backlight is set by ONE on-device script', () => {
+  const sc = backlightScript(cfg(), 40);
+  assert.match(sc, /^input keyevent 176; sleep 1\.2; input keyevent 20; /);
+  assert.equal((sc.match(/input keyevent 21 /g) || []).length, 3 + 1);   // 100 Lefts in chunks of 25 (last has no trailing space)
+  assert.ok(!sc.includes('\n'));
+});
+
 test('controller applies the schedule once and not again', async () => {
   const { ctl, log } = makeController();
   await ctl.tick();
@@ -86,16 +93,35 @@ test('controller waits while the TV is asleep and catches up', async () => {
   assert.equal(ctl.snapshot().applied, 'day');
 });
 
-test('manual mode lasts until the schedule changes; pause stops the schedule', async () => {
+test('manual mode lasts until the schedule changes; switching auto off freezes it', async () => {
   const { ctl, setNow } = makeController();
   await ctl.tick();
   await ctl.setMode('night');
   assert.equal(ctl.snapshot().mode, 'night');
   setNow('2026-11-21T21:00:00Z');  // schedule moves to evening
   assert.equal(ctl.snapshot().mode, 'evening');
-  await ctl.setPaused(true);
   await ctl.tick();
-  assert.equal(ctl.snapshot().applied, 'night');  // paused: nothing applied
+  assert.equal(ctl.snapshot().applied, 'evening');
+  await ctl.setAuto(false);
+  assert.equal(ctl.snapshot().autoOn, false);
+  await ctl.tick();
+  assert.equal(ctl.snapshot().applied, 'evening');   // nothing changes by itself any more
+});
+
+test('manual only (the default): nothing happens until a button is tapped', async () => {
+  const log = [];
+  const c = { ...DEFAULTS, levels: { ...DEFAULTS.levels }, tvHost: '192.0.2.5', adbPath: 'adb' };
+  assert.equal(c.autoSchedule, false);
+  const tv = new Tv(c, fakeRun(log), async () => {});
+  const ctl = new Controller({ cfg: c, tv, now: () => new Date('2026-11-21T17:00:00Z') });
+  await ctl.tick();
+  assert.equal(log.length, 0);
+  assert.equal(ctl.snapshot().mode, null);
+  await ctl.setMode('evening');
+  assert.equal(ctl.snapshot().applied, 'evening');
+  assert.ok(log.some((l) => l.includes('input keyevent 176')));
+  await ctl.setMode('day');
+  assert.equal(ctl.snapshot().applied, 'day');       // stays until another tap, even hours later
 });
 
 test('controller reports an unreachable TV', async () => {

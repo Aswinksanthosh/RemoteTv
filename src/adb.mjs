@@ -41,11 +41,11 @@ export function backlightSteps(cfg, target) {
   if (!Number.isInteger(t) || t < 0 || t > cfg.sliderMax) throw new Error('backlight must be 0..' + cfg.sliderMax);
   const steps = [
     { keys: [KEY.SETTINGS], wait: cfg.menuDelayMs },
-    { keys: [KEY.DOWN], wait: 400 },
-    { keys: [KEY.DOWN], wait: 400 },
+    { keys: [KEY.DOWN], wait: cfg.navDelayMs },
+    { keys: [KEY.DOWN], wait: cfg.navDelayMs },
     { keys: [KEY.OK], wait: cfg.menuDelayMs },
-    { keys: [KEY.DOWN], wait: 400 },
-    { keys: [KEY.DOWN], wait: 600 },
+    { keys: [KEY.DOWN], wait: cfg.navDelayMs },
+    { keys: [KEY.DOWN], wait: cfg.navDelayMs },
   ];
   const rep = (key, n) => {
     for (let i = 0; i < n; i += cfg.keyChunk) {
@@ -54,9 +54,18 @@ export function backlightSteps(cfg, target) {
   };
   rep(KEY.LEFT, cfg.sliderMax);
   rep(KEY.RIGHT, t);
-  steps.push({ keys: [], wait: 800 });
-  for (let i = 0; i < cfg.exitBacks; i++) steps.push({ keys: [KEY.BACK], wait: 500 });
+  steps.push({ keys: [], wait: 500 });
+  for (let i = 0; i < cfg.exitBacks; i++) steps.push({ keys: [KEY.BACK], wait: 300 });
   return steps;
+}
+
+export function backlightScript(cfg, target) {
+  const parts = [];
+  for (const s of backlightSteps(cfg, target)) {
+    if (s.keys.length) parts.push('input keyevent ' + s.keys.join(' '));
+    if (s.wait > 0) parts.push('sleep ' + s.wait / 1000);
+  }
+  return parts.join('; ');
 }
 
 export class Tv {
@@ -85,36 +94,9 @@ export class Tv {
     if (d) return d[1] === 'ON';
     return true;
   }
-  // Experiment: send the TV's own "switch picture mode" broadcast, with one optional extra.
-  // Only this one action, with strictly checked names, so it is safe to expose on the phone page.
-  async broadcastPictureMode({ type = 'es', key = '', value = '' } = {}) {
-    const args = ['shell', 'am', 'broadcast', '-a', 'com.amazon.tv.pqsettings.action.SWITCH_PICTURE_MODE'];
-    if (key !== '') {
-      if (!['es', 'ei', 'ez'].includes(type)) throw new Error('type must be es, ei or ez');
-      if (!/^[A-Za-z0-9_.]{1,40}$/.test(key)) throw new Error('bad extra name');
-      const v = String(value);
-      if (!/^[A-Za-z0-9_.-]{1,30}$/.test(v)) throw new Error('bad extra value');
-      if (type === 'ei' && !/^-?\d{1,9}$/.test(v)) throw new Error('ei needs a whole number');
-      if (type === 'ez' && !/^(true|false)$/.test(v)) throw new Error('ez needs true or false');
-      args.push('--' + type, key, v);
-    }
-    await this.adb(['logcat', '-c']);
-    const r = await this.adb(args);
-    await this.pause(1500);
-    const log = await this.adb(['logcat', '-d', '-t', '400']);
-    const lines = (log.stdout || '').split(/\r?\n/)
-      .filter((l) => /PictureMode|pqsettings|SwitchPicture|PQ|picture/i.test(l))
-      .slice(-25).map((l) => l.slice(0, 300));
-    return [(r.stdout || r.stderr || '').trim(), lines.length ? '--- TV log ---' : '--- TV log: nothing ---', ...lines].join('\n');
-  }
-
+  // The whole sequence runs as ONE shell script on the TV, so the menu is only on screen for a few seconds.
   async setBacklight(target) {
-    for (const s of backlightSteps(this.cfg, target)) {
-      if (s.keys.length) {
-        const r = await this.adb(['shell', 'input', 'keyevent', ...s.keys.map(String)]);
-        if (r.code !== 0) throw new Error('ADB key press failed: ' + (r.stderr || r.stdout || r.code).toString().trim());
-      }
-      await this.pause(s.wait);
-    }
+    const r = await this.adb(['shell', backlightScript(this.cfg, target)], { timeout: 90000 });
+    if (r.code !== 0) throw new Error('ADB key presses failed: ' + (r.stderr || r.stdout || r.code).toString().trim());
   }
 }

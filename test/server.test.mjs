@@ -21,7 +21,7 @@ test('API needs the key; page files are plain', async () => {
     assert.equal((await fetch(base + '/api/state')).status, 401);
     const ok = await fetch(base + '/api/state', { headers: { 'x-key': key } });
     assert.equal(ok.status, 200);
-    assert.ok(['day', 'evening', 'night'].includes((await ok.json()).mode));
+    assert.equal((await ok.json()).mode, null);   // manual only: nothing chosen yet
     const page = await fetch(base + '/');
     assert.equal(page.status, 200);
     assert.match(page.headers.get('content-type'), /text\/html/);

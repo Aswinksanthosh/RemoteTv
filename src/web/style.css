@@ -17,6 +17,4 @@ label { display:flex; justify-content:space-between; align-items:center; margin:
 input { width:90px; min-height:42px; border-radius:8px; border:1px solid #333a49; background:#0f1115; color:var(--fg); font:inherit; padding:0 10px; text-align:right; }
 .foot { color:var(--mute); text-align:center; font-size:13px; }
 
-#ex-out { white-space: pre-wrap; word-break: break-word; font-size: 12px; font-family: ui-monospace, monospace; }
-.offscreen { position: fixed; top: 0; left: -9999px; opacity: 0; }
-#ex-out { user-select: text; -webkit-user-select: text; }
+[hidden] { display: none !important; }

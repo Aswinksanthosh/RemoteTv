@@ -7,7 +7,7 @@ export class Controller {
     Object.assign(this, { cfg, tv, saveCfg, saveState, now });
     const s = loadState() || {};
     this.s = {
-      paused: !!s.paused, override: s.override || null,
+      override: s.override || null,
       applied: s.applied || null, appliedLevel: s.appliedLevel ?? null,
       lastApplyAt: s.lastApplyAt || null, lastError: null, reachable: null, awake: null,
     };
@@ -17,13 +17,14 @@ export class Controller {
   }
 
   _save() {
-    const { paused, override, applied, appliedLevel, lastApplyAt } = this.s;
-    this.saveState({ paused, override, applied, appliedLevel, lastApplyAt });
+    const { override, applied, appliedLevel, lastApplyAt } = this.s;
+    this.saveState({ override, applied, appliedLevel, lastApplyAt });
   }
 
   auto() { return modeAt(this.now(), this.cfg); }
 
   desired() {
+    if (!this.cfg.autoSchedule) return this.s.override ? this.s.override.mode : this.s.applied;   // manual only
     const a = this.auto();
     const o = this.s.override;
     if (o && o.autoAt === a.mode) return o.mode;
@@ -33,12 +34,13 @@ export class Controller {
 
   async tick({ force = false } = {}) {
     if (this.busy) { if (force) this.s.lastError = 'Busy, try again in a moment'; return; }
-    if (this.s.paused && !force) return;
+    if (!this.cfg.autoSchedule && !force) return;
     // A long gap means the laptop was asleep: apply the right level again once.
     const t = this.now().getTime();
     if (this.lastTick && t - this.lastTick > 5 * 60000) { this.s.applied = null; this.retryAfter = 0; }
     this.lastTick = t;
     const want = this.desired();
+    if (!want) { if (force) this.s.lastError = 'Choose Day, Evening or Night first'; return; }
     const level = this.cfg.levels[want];
     if (!force) {
       if (this.s.applied === want && this.s.appliedLevel === level) return;
@@ -74,10 +76,10 @@ export class Controller {
     return this.snapshot();
   }
 
-  async setPaused(paused) {
-    this.s.paused = !!paused;
-    this._save();
-    if (!paused) await this.tick();
+  async setAuto(on) {
+    this.cfg.autoSchedule = !!on;
+    this.saveCfg(this.cfg);
+    if (on) { this.s.override = null; this._save(); await this.tick(); }
     return this.snapshot();
   }
 
@@ -93,11 +95,12 @@ export class Controller {
   snapshot() {
     const a = this.auto();
     const want = this.desired();
+    const on = !!this.cfg.autoSchedule;
     return {
-      mode: want, auto: a.mode, level: this.cfg.levels[want],
+      mode: want, scheduleMode: a.mode, autoOn: on, level: want ? this.cfg.levels[want] : null,
       applied: this.s.applied, appliedLevel: this.s.appliedLevel,
-      paused: this.s.paused, override: this.s.override ? this.s.override.mode : null,
-      next: a.next ? { mode: a.next.mode, at: a.next.at.toISOString() } : null,
+      override: this.s.override ? this.s.override.mode : null,
+      next: on && a.next ? { mode: a.next.mode, at: a.next.at.toISOString() } : null,
       levels: { ...this.cfg.levels }, timezone: this.cfg.timezone,
       tv: { reachable: this.s.reachable, awake: this.s.awake },
       busy: this.busy, lastError: this.s.lastError, lastApplyAt: this.s.lastApplyAt,
