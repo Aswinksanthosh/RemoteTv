@@ -1,0 +1,9 @@
+{
+  "name": "remotetv",
+  "version": "0.1.0",
+  "description": "Phone-controlled TV backlight schedule for a Fire TV Edition TV, run from an always-on Windows laptop over ADB.",
+  "type": "module",
+  "private": true,
+  "engines": { "node": ">=18" },
+  "scripts": { "test": "node --test", "start": "node bin/remotetv.mjs" }
+}

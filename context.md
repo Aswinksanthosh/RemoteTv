@@ -51,9 +51,18 @@ Look for keys with `bright`, `backlight` or `picture` and see whether the pictur
 
 Termux (sideloaded) on the Fire TV with `adb connect localhost:5555`, Termux:Boot to start, Tailscale Android TV app for the phone page. Keep the code portable (ADB path and host configurable) so it runs on the laptop first and can move later. Risks: Fire OS may kill background apps; the menu flashes about 8 seconds on screen, so apply changes at wake-up or quiet times; when the TV is off, catch up to the correct level on wake.
 
-## Status
+## Status (v0.1.0, 2026-11-21)
 
-Planning. Key-press brightness change confirmed to work from the laptop. Not built yet.
+Decisions (owner): laptop version first, TV always on, menu flash is fine, owner only (phone key), Node.js.
+
+Written and unit-tested (13 tests): sunrise/sunset, schedule, key-press sequence, controller (catch-up while asleep, manual override, pause), key auth, server rules, phone page rules. Files: `src/` (config, sun, schedule, adb, controller, auth, server, web/), `bin/` (remotetv, pair, set-backlight).
+
+**NOT yet verified on the real TV:** the full automated sequence from a script (only a hand-typed version was tried), key press timing with 10 keys per call (may need larger `keyDelayMs`), that Back x3 returns to the previous app instead of Home, slider step really 1 per press and range 0..100, the `dumpsys power` awake check, running as a scheduled task, Tailscale on the laptop. Fix these first and write findings here.
+
+## To do
+- Run the steps in README on the real TV; tune `keyDelayMs`, `exitBacks`, `sliderMax`.
+- Windows installer (`install.ps1`, scheduled task at sign-in, hidden launcher, Update button) like RemotePc; needs the repo public or a different install route.
+- QR code for pairing. Weather (cloud cover) adjustment. Other picture modes (backlight is per mode). Option to run inside the TV (Termux).
 
 ## Open questions
 
