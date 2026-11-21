@@ -30,6 +30,7 @@ function render(s) {
   $('next').textContent = s.next ? 'Next: ' + s.next.mode + ' at ' + hhmm(s.next.at, s.timezone) : '';
   $('error').textContent = s.lastError || '';
   $('status').textContent = 'TV ' + (s.tv.reachable === null ? 'not checked' : s.tv.reachable ? (s.tv.awake ? 'connected' : 'asleep') : 'not reachable') + (s.busy ? ' · working...' : '');
+  $('version').textContent = s.version ? 'Version ' + s.version : '';
   $('pause').textContent = s.paused ? 'Resume schedule' : 'Pause schedule';
   document.querySelectorAll('button[data-mode]').forEach((b) => b.classList.toggle('on', b.dataset.mode === s.override));
   for (const k of ['day', 'evening', 'night']) {
@@ -45,5 +46,14 @@ async function run(fn) {
 document.querySelectorAll('button[data-mode]').forEach((b) => b.addEventListener('click', () => run(() => api('/api/mode', { mode: b.dataset.mode }))));
 $('pause').addEventListener('click', () => run(() => api('/api/paused', { paused: !(state && state.paused) })));
 $('save').addEventListener('click', () => run(() => api('/api/levels', { day: Number($('lv-day').value), evening: Number($('lv-evening').value), night: Number($('lv-night').value) })));
+$('apply').addEventListener('click', () => run(() => api('/api/apply', {})));
+$('update').addEventListener('click', async () => {
+  $('upd').textContent = 'Updating...';
+  try {
+    const r = await api('/api/update', {});
+    $('upd').textContent = r.updated ? 'Updated: ' + r.changes.join('; ') + '. Restarting...' : 'Already up to date';
+    if (r.updated) setTimeout(() => location.reload(), 6000);
+  } catch (e) { $('upd').textContent = e.message; }
+});
 run(() => api('/api/state'));
 setInterval(() => run(() => api('/api/state')), 5000);

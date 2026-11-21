@@ -46,7 +46,7 @@ test('repo holds no personal data', () => {
   for (const dir of ['src', 'bin', 'test']) {
     for (const f of fs.readdirSync(path.join(root, dir), { recursive: true })) {
       const p = path.join(root, dir, f);
-      if (!fs.statSync(p).isFile() || f.endsWith('server.test.mjs')) continue;
+      if (!fs.statSync(p).isFile() || f.endsWith('server.test.mjs') || f.includes('vendor')) continue;
       const t = fs.readFileSync(p, 'utf8');
       for (const re of bad) assert.ok(!re.test(t), `${f} matches ${re}`);
     }

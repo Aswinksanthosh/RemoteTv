@@ -59,6 +59,9 @@ Written and unit-tested (13 tests): sunrise/sunset, schedule, key-press sequence
 
 **NOT yet verified on the real TV:** the full automated sequence from a script (only a hand-typed version was tried), key press timing with 10 keys per call (may need larger `keyDelayMs`), that Back x3 returns to the previous app instead of Home, slider step really 1 per press and range 0..100, the `dumpsys power` awake check, running as a scheduled task, Tailscale on the laptop. Fix these first and write findings here.
 
+## Added (same day, owner request: set everything up from the phone, one button)
+`Install.cmd` -> `install.ps1` (self-elevates once, installs Node/Git/ADB via winget, `bin/setup.mjs` asks for the TV IP, connects, pairs by QR; firewall rule for Tailscale range 100.64.0.0/10 on port 8793; scheduled task `RemoteTv` at sign-in running hidden `start.ps1`, which restarts the app, exit code 75 = restart after update). Phone page has Apply now (test) and **Update** (`git pull --ff-only` in the app folder, restart if changed; works with a private repo because the laptop's git is already signed in). Laptop asleep more than 5 minutes: level is applied again. QR code generator is the MIT one from RemotePc (`src/vendor/qrcode.mjs`, THIRD-PARTY.md). 18 tests pass. Never run on real Windows yet (the PowerShell and the scheduled task are untested).
+
 ## To do
 - Run the steps in README on the real TV; tune `keyDelayMs`, `exitBacks`, `sliderMax`.
 - Windows installer (`install.ps1`, scheduled task at sign-in, hidden launcher, Update button) like RemotePc; needs the repo public or a different install route.

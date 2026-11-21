@@ -2,18 +2,18 @@
 
 Automatic backlight schedule (day, evening, night) for a **Fire TV Edition TV** (tested idea on a TCL, Fire OS 8), controlled from a phone page. It runs on an always-on **Windows laptop** and presses the TV's remote buttons over ADB. Phone link goes through Tailscale. Plain Node.js, no dependencies.
 
-**Status: first version, written but NOT yet run against the real TV. Test step by step below.**
+**Status: first version. Unit-tested, not yet verified on the real TV or a real Windows install.**
 
-## What you need
-- Windows laptop (always on) with Node.js 18+ (`winget install OpenJS.NodeJS.LTS`), ADB (`winget install Google.PlatformTools`) and Tailscale
-- The TV: Settings > Device & Software > About, select the device name 7 times, then Developer Options > ADB debugging ON
-- Phone with Tailscale (same account as the laptop)
+## Setup: one button
+1. On the TV: Settings > Device & Software > About, select the device name 7 times, then Developer Options > **ADB debugging ON**. Note the IP address (About > Network).
+2. On the laptop: get this folder (`git clone`, or `git pull` if you have it) and double-click **Install.cmd**. Say Yes to the administrator question once. It installs Node.js, Git and ADB if missing, asks for the TV IP, connects to the TV (accept the "Allow debugging?" box on the TV, tick Always allow), opens the firewall for Tailscale addresses only, starts RemoteTv at every sign-in, and shows a **QR code**.
+3. On the phone (Tailscale on, same account as the laptop): scan the QR code and Add to Home Screen. Done. You do not need to touch the laptop again.
 
-## Try it in this order
-1. Look at the plan without touching the TV: `node bin/set-backlight.mjs 40 --dry`
-2. One real change: `node bin/set-backlight.mjs 40 --tv <tv-ip>` (watch the TV; Backlight should end at 40 and the menu close)
-3. Run the app: `node bin/remotetv.mjs --tv <tv-ip>`. It prints the phone link once (keep it private). New link later: `node bin/pair.mjs`
-4. Open the link on the phone (Tailscale on).
+From the phone page: Day / Evening / Night now, back to schedule, pause, change levels, **Apply backlight now (test)**, and **Update the program** (runs `git pull` on the laptop and restarts). New phone: double-click **Pair-Phone.cmd**. Remove: **Uninstall.cmd**.
+
+Needs a Windows laptop that stays on, Tailscale on laptop and phone, and the folder must be a git clone for the Update button.
+
+Manual commands: `node bin/set-backlight.mjs 40 --tv <ip> [--dry] [--force]` tests the key presses; `node bin/remotetv.mjs` runs the app.
 
 ## How it works
 - Day starts at sunrise, evening 60 min before sunset, night 120 min after sunset (calculated for the configured location, no internet needed). Levels default to 78 / 55 / 30.

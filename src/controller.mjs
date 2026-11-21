@@ -13,6 +13,7 @@ export class Controller {
     };
     this.retryAfter = 0;
     this.busy = false;
+    this.lastTick = 0;
   }
 
   _save() {
@@ -33,6 +34,10 @@ export class Controller {
   async tick({ force = false } = {}) {
     if (this.busy) { if (force) this.s.lastError = 'Busy, try again in a moment'; return; }
     if (this.s.paused && !force) return;
+    // A long gap means the laptop was asleep: apply the right level again once.
+    const t = this.now().getTime();
+    if (this.lastTick && t - this.lastTick > 5 * 60000) { this.s.applied = null; this.retryAfter = 0; }
+    this.lastTick = t;
     const want = this.desired();
     const level = this.cfg.levels[want];
     if (!force) {

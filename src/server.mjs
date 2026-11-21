@@ -33,7 +33,7 @@ function readBody(req) {
   });
 }
 
-export function createServer({ cfg, controller, auth, sanitizeLevels }) {
+export function createServer({ cfg, controller, auth, sanitizeLevels, version = '', updater = null, restart = () => {} }) {
   return http.createServer(async (req, res) => {
     try {
       if (!isAllowedAddress(req.socket.remoteAddress, cfg.allowLan)) return send(res, 403, { error: 'forbidden' });
@@ -45,12 +45,19 @@ export function createServer({ cfg, controller, auth, sanitizeLevels }) {
       }
       if (!auth.check(req.headers['x-key'], req.socket.remoteAddress)) return send(res, 401, { error: 'unauthorized' });
       const post = req.method === 'POST';
-      if (url.pathname === '/api/state' && req.method === 'GET') return send(res, 200, controller.snapshot());
+      if (url.pathname === '/api/state' && req.method === 'GET') return send(res, 200, { ...controller.snapshot(), version });
       if (!post) return send(res, 404, { error: 'not found' });
       const body = await readBody(req);
       if (url.pathname === '/api/mode') return send(res, 200, await controller.setMode(body.mode));
       if (url.pathname === '/api/paused') return send(res, 200, await controller.setPaused(body.paused));
       if (url.pathname === '/api/levels') return send(res, 200, await controller.setLevels(body, sanitizeLevels));
+      if (url.pathname === '/api/update') {
+        if (!updater) return send(res, 400, { error: 'updates are not available' });
+        const r = await updater();
+        send(res, 200, { ...r, version });
+        if (r.updated) setTimeout(restart, 500);
+        return;
+      }
       if (url.pathname === '/api/apply') return send(res, 200, await controller.reapply());
       return send(res, 404, { error: 'not found' });
     } catch (e) {
