@@ -25,7 +25,7 @@ Automatic brightness: day, evening, night (dim at night), following real sunrise
 - Phone page (draft): current mode and brightness, Day / Evening / Night buttons, Pause schedule, Update.
 - The TV's IP can change: prefer a router DHCP reservation, else rediscover.
 
-## Biggest risk (test first)
+## Biggest risk (resolved: use key presses, see test results)
 
 It is NOT known whether ADB can change the TCL picture backlight. Test on the TV:
 
@@ -38,9 +38,22 @@ adb shell settings put system screen_brightness 50
 
 Look for keys with `bright`, `backlight` or `picture` and see whether the picture changes. If nothing works, look for other routes (picture mode presets via TCL/Fire TV settings, an overlay dimmer app) before writing the schedule.
 
+## Test results (2026-11-21)
+
+- ADB over Wi-Fi works from Windows (winget `Google.PlatformTools`; if `adb` is not found, restart the shell or call the full path under `%LOCALAPPDATA%\Microsoft\WinGet\Packages`).
+- The generic Android settings `screen_brightness` / `screen_brightness_float` exist but do NOT change the TV backlight.
+- The picture menu (Picture - Apps & Videos - SDR: Picture Mode, Reset, Backlight, Contrast) is not visible to `uiautomator` or `dumpsys window`; assume a system overlay. Control it with key presses.
+- Hardware is MediaTek. A broadcast `com.amazon.tv.pqsettings.action.SWITCH_PICTURE_MODE` exists; sent without extras it completes with result=0 and does nothing visible. Extras unknown.
+- WORKS: press keys by ADB. Sequence: Home (3), Settings (176), Down x2 (20), OK (23) = Picture, Down x2 = Backlight, then Left (21) / Right (22) change the value. 5 Left then 5 Right moved the slider and restored it.
+- Picture modes: Standard, Movie, Dynamic, Natural, Custom, plus PC and Game for HDMI. Backlight is stored per mode and per content type (Apps & Videos SDR, HDR, HDMI...), so dimming only one mode misses the others.
+
+## Idea: run on the TV itself
+
+Termux (sideloaded) on the Fire TV with `adb connect localhost:5555`, Termux:Boot to start, Tailscale Android TV app for the phone page. Keep the code portable (ADB path and host configurable) so it runs on the laptop first and can move later. Risks: Fire OS may kill background apps; the menu flashes about 8 seconds on screen, so apply changes at wake-up or quiet times; when the TV is off, catch up to the correct level on wake.
+
 ## Status
 
-Planning only. ADB debugging not confirmed enabled yet. Brightness test not run yet.
+Planning. Key-press brightness change confirmed to work from the laptop. Not built yet.
 
 ## Open questions
 
