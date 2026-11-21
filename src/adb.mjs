@@ -76,9 +76,14 @@ export class Tv {
     const r = await this.adb(['get-state']);
     return r.code === 0 && /device/.test(r.stdout);
   }
+  // Only "asleep" when the TV clearly says so; an unclear answer counts as awake.
   async isAwake() {
-    const r = await this.adb(['shell', 'dumpsys power | grep mWakefulness=']);
-    return /Awake/i.test(r.stdout);
+    const r = await this.adb(['shell', 'dumpsys', 'power']);
+    const w = /mWakefulness=(\w+)/.exec(r.stdout);
+    if (w) return w[1] === 'Awake';
+    const d = /Display Power: state=(\w+)/.exec(r.stdout);
+    if (d) return d[1] === 'ON';
+    return true;
   }
   async setBacklight(target) {
     for (const s of backlightSteps(this.cfg, target)) {

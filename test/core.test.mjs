@@ -50,7 +50,7 @@ function fakeRun(log, { awake = true, connected = true } = {}) {
     log.push(args.join(' '));
     if (args.includes('connect')) return { code: 0, stdout: 'connected', stderr: '' };
     if (args.includes('get-state')) return connected ? { code: 0, stdout: 'device', stderr: '' } : { code: 1, stdout: '', stderr: 'no' };
-    if (args.some((a) => a.includes('mWakefulness'))) return { code: 0, stdout: awake ? 'mWakefulness=Awake' : 'mWakefulness=Asleep', stderr: '' };
+    if (args.includes('power')) return { code: 0, stdout: awake ? 'mWakefulness=Awake' : 'mWakefulness=Asleep', stderr: '' };
     return { code: 0, stdout: '', stderr: '' };
   };
 }
