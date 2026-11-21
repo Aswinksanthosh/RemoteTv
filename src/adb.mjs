@@ -85,6 +85,23 @@ export class Tv {
     if (d) return d[1] === 'ON';
     return true;
   }
+  // Experiment: send the TV's own "switch picture mode" broadcast, with one optional extra.
+  // Only this one action, with strictly checked names, so it is safe to expose on the phone page.
+  async broadcastPictureMode({ type = 'es', key = '', value = '' } = {}) {
+    const args = ['shell', 'am', 'broadcast', '-a', 'com.amazon.tv.pqsettings.action.SWITCH_PICTURE_MODE'];
+    if (key !== '') {
+      if (!['es', 'ei', 'ez'].includes(type)) throw new Error('type must be es, ei or ez');
+      if (!/^[A-Za-z0-9_.]{1,40}$/.test(key)) throw new Error('bad extra name');
+      const v = String(value);
+      if (!/^[A-Za-z0-9_.-]{1,30}$/.test(v)) throw new Error('bad extra value');
+      if (type === 'ei' && !/^-?\d{1,9}$/.test(v)) throw new Error('ei needs a whole number');
+      if (type === 'ez' && !/^(true|false)$/.test(v)) throw new Error('ez needs true or false');
+      args.push('--' + type, key, v);
+    }
+    const r = await this.adb(args);
+    return (r.stdout || r.stderr || '').trim();
+  }
+
   async setBacklight(target) {
     for (const s of backlightSteps(this.cfg, target)) {
       if (s.keys.length) {

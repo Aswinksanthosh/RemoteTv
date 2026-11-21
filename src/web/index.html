@@ -40,6 +40,18 @@
     <div class="sub" id="upd"></div>
     <div class="sub" id="version"></div>
   </section>
+  <section class="card">
+    <h2>Mode switch test</h2>
+    <p class="sub">Sends the TV's own picture-mode command. Watch the TV and tell Claude what changed.</p>
+    <button class="wide" data-exp="es|picture_mode|movie">Try: picture_mode = movie</button>
+    <button class="wide" data-exp="es|mode|movie">Try: mode = movie</button>
+    <button class="wide" data-exp="ei|picture_mode|1">Try: picture_mode = 1 (number)</button>
+    <label>Type <select id="ex-type"><option>es</option><option>ei</option><option>ez</option></select></label>
+    <label>Name <input id="ex-key" type="text" autocapitalize="off" autocomplete="off"></label>
+    <label>Value <input id="ex-val" type="text" autocapitalize="off" autocomplete="off"></label>
+    <button class="wide" id="ex-send">Send my own</button>
+    <div class="sub" id="ex-out"></div>
+  </section>
   <p class="foot" id="status"></p>
 </main>
 <script src="/app.js"></script>

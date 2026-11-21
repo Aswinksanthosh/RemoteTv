@@ -55,5 +55,17 @@ $('update').addEventListener('click', async () => {
     if (r.updated) setTimeout(() => location.reload(), 6000);
   } catch (e) { $('upd').textContent = e.message; }
 });
+async function experiment(type, k, v) {
+  $('ex-out').textContent = 'Sending...';
+  try {
+    const r = await api('/api/experiment', { type, key: k, value: v });
+    $('ex-out').textContent = (type + ' ' + k + ' ' + v).trim() + ' -> ' + (r.output || 'sent');
+  } catch (e) { $('ex-out').textContent = e.message; }
+}
+document.querySelectorAll('button[data-exp]').forEach((b) => b.addEventListener('click', () => {
+  const [t, k, v] = b.dataset.exp.split('|');
+  experiment(t, k, v);
+}));
+$('ex-send').addEventListener('click', () => experiment($('ex-type').value, $('ex-key').value.trim(), $('ex-val').value.trim()));
 run(() => api('/api/state'));
 setInterval(() => run(() => api('/api/state')), 5000);

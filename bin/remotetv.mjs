@@ -23,8 +23,9 @@ if (changed) saveConfig(cfg, dir);
 if (!cfg.tvHost) { console.error('Run Install.cmd first, or: node bin/remotetv.mjs --tv <tv-ip>'); process.exit(1); }
 
 const stateFile = path.join(dir, 'state.json');
+const tv = new Tv(cfg);
 const controller = new Controller({
-  cfg, tv: new Tv(cfg),
+  cfg, tv,
   saveCfg: (c) => saveConfig(c, dir),
   loadState: () => { try { return JSON.parse(fs.readFileSync(stateFile, 'utf8')); } catch { return {}; } },
   saveState: (s) => { fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(stateFile, JSON.stringify(s)); },
@@ -33,7 +34,7 @@ const auth = new Auth(dir);
 if (!auth.hasKeys()) showLink(cfg.port, auth.addKey());
 const version = await versionInfo(root);
 const server = createServer({
-  cfg, controller, auth, sanitizeLevels, version,
+  cfg, controller, auth, sanitizeLevels, version, tv,
   updater: () => gitUpdate(root),
   restart: () => process.exit(75),   // the launcher (start.ps1) starts it again
 });
