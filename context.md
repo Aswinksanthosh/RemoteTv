@@ -47,6 +47,10 @@ Look for keys with `bright`, `backlight` or `picture` and see whether the pictur
 - WORKS: press keys by ADB. Sequence: Home (3), Settings (176), Down x2 (20), OK (23) = Picture, Down x2 = Backlight, then Left (21) / Right (22) change the value. 5 Left then 5 Right moved the slider and restored it.
 - Picture modes: Standard, Movie, Dynamic, Natural, Custom, plus PC and Game for HDMI. Backlight is stored per mode and per content type (Apps & Videos SDR, HDR, HDMI...), so dimming only one mode misses the others.
 
+## Dead end: silent picture-mode switch (2026-11-21)
+
+The broadcast `com.amazon.tv.pqsettings.action.SWITCH_PICTURE_MODE` is refused for ADB: logcat says `Permission Denial ... from uid=2000 requires com.amazon.tv.pqsettings.permission.SWITCH_PICTURE_MODE`. The permission cannot be given to the shell user, so mode switching without the menu is not possible over ADB. The phone page "Mode switch test" card is only for experiments and can be removed. Backlight stays on key presses (menu flashes). Ideas to make it less annoying: apply only at TV wake or when the Home screen is focused (`dumpsys window` mCurrentFocus shows the foreground app), run the whole key sequence in one on-device shell command to cut the time, and look for a native auto-brightness / eco option in the Picture menu.
+
 ## Idea: run on the TV itself
 
 Termux (sideloaded) on the Fire TV with `adb connect localhost:5555`, Termux:Boot to start, Tailscale Android TV app for the phone page. Keep the code portable (ADB path and host configurable) so it runs on the laptop first and can move later. Risks: Fire OS may kill background apps; the menu flashes about 8 seconds on screen, so apply changes at wake-up or quiet times; when the TV is off, catch up to the correct level on wake.
